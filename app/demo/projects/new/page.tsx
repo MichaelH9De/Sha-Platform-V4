@@ -1,2 +1,5 @@
-import { redirect } from "next/navigation";
-export default function Page() { redirect("/demo/projects"); }
+import { DemoProjectForm } from "@/components/demo/DemoProjectForm";
+
+export default function Page() {
+  return <DemoProjectForm />;
+}
