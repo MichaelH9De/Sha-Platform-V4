@@ -1,0 +1,2 @@
+import { PageHeader } from "@/components/PageHeader"; import { decisions } from "@/lib/demo-data";
+export default function Page() { return <section className="stack"><PageHeader eyebrow="Fictional decision trail" title="Decisions">Decision ownership, status and delivery impact.</PageHeader><div className="panel"><ul className="list">{decisions.map((d) => <li key={d.id}><strong>{d.decision}: {d.status}</strong><br /><small>{d.project} · {d.owner} · {d.date} · {d.impact}</small></li>)}</ul></div></section>; }

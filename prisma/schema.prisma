@@ -1,0 +1,443 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
+enum ProjectStatus {
+  ENQUIRY
+  APPOINTED
+  LIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum HealthStatus {
+  GREEN
+  AMBER
+  RED
+}
+
+enum RecordStatus {
+  DRAFT
+  OPEN
+  IN_PROGRESS
+  BLOCKED
+  COMPLETE
+  CLOSED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum QAStatus {
+  NOT_STARTED
+  IN_REVIEW
+  CHANGES_REQUIRED
+  APPROVED
+  OVERRIDDEN
+}
+
+enum ReportAudience {
+  INTERNAL
+  CLIENT
+  EXTERNAL_DESIGN_TEAM
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id                 String               @id @default(cuid())
+  name               String
+  email              String               @unique
+  roleId             String
+  status             UserStatus           @default(ACTIVE)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  role               Role                 @relation(fields: [roleId], references: [id])
+  ownedClients       Client[]             @relation("ClientOwner")
+  managedProjects    Project[]            @relation("ProjectManager")
+  stageOwners        Stage[]              @relation("StageOwner")
+  deliverablesOwned  Deliverable[]        @relation("DeliverableOwner")
+  actionsOwned       Action[]             @relation("ActionOwner")
+  risksOwned         Risk[]               @relation("RiskOwner")
+  decisionsOwned     Decision[]           @relation("DecisionOwner")
+  requestedInfo      InformationRequest[] @relation("InfoRequester")
+  resourceAllocations ResourceAllocation[]
+  qaReviews          QAReview[]           @relation("QAReviewer")
+  reportsGenerated   Report[]             @relation("ReportGeneratedBy")
+  auditEvents        AuditEvent[]          @relation("AuditActor")
+  projectMemberships ProjectMember[]
+}
+
+model ProjectMember {
+  projectId String
+  userId    String
+  disciplineId String?
+  canManage Boolean @default(false)
+  createdAt DateTime @default(now())
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discipline Discipline? @relation(fields: [disciplineId], references: [id])
+
+  @@id([projectId, userId])
+  @@index([userId])
+}
+
+model Client {
+  id             String        @id @default(cuid())
+  name           String
+  sector         String
+  contactOwnerId String
+  status         RecordStatus  @default(OPEN)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  contactOwner   User          @relation("ClientOwner", fields: [contactOwnerId], references: [id])
+  projects       Project[]
+}
+
+model Project {
+  id              String               @id @default(cuid())
+  clientId        String
+  name            String
+  sector          String
+  projectManagerId String
+  status          ProjectStatus        @default(ENQUIRY)
+  health          HealthStatus         @default(AMBER)
+  stageTemplateId String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  client          Client               @relation(fields: [clientId], references: [id])
+  projectManager  User                 @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  stageTemplate   StageTemplate?       @relation(fields: [stageTemplateId], references: [id])
+  appointments    Appointment[]
+  stages          Stage[]
+  deliverables    Deliverable[]
+  actions         Action[]
+  risks           Risk[]
+  decisions       Decision[]
+  informationRequests InformationRequest[]
+  feeBudgets      FeeBudget[]
+  feeForecasts    FeeForecast[]
+  resourceAllocations ResourceAllocation[]
+  bimRecords      BIMRecord[]
+  reports         Report[]
+  members         ProjectMember[]
+
+  @@index([clientId])
+  @@index([projectManagerId])
+  @@index([status, health])
+}
+
+model Appointment {
+  id           String       @id @default(cuid())
+  projectId    String
+  scopeSummary String
+  startDate    DateTime
+  endDate      DateTime?
+  feeBasis     String
+  status       RecordStatus @default(DRAFT)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scopeItems   ScopeItem[]
+}
+
+model ScopeItem {
+  id            String       @id @default(cuid())
+  appointmentId String
+  disciplineId  String?
+  description   String
+  included      Boolean      @default(true)
+  status        RecordStatus @default(OPEN)
+  appointment   Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  discipline    Discipline?  @relation(fields: [disciplineId], references: [id])
+}
+
+model StageTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  projects    Project[]
+  deliverableTemplates DeliverableTemplate[]
+}
+
+model Stage {
+  id           String       @id @default(cuid())
+  projectId    String
+  name         String
+  order        Int
+  plannedStart DateTime?
+  plannedEnd   DateTime?
+  actualStatus RecordStatus @default(OPEN)
+  ownerId      String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner        User?        @relation("StageOwner", fields: [ownerId], references: [id])
+  deliverables Deliverable[]
+
+  @@unique([projectId, order])
+}
+
+model Discipline {
+  id          String       @id @default(cuid())
+  name        String
+  code        String       @unique
+  active      Boolean      @default(true)
+  deliverables Deliverable[]
+  feeBudgets   FeeBudget[]
+  resourceAllocations ResourceAllocation[]
+  bimRecords   BIMRecord[]
+  scopeItems   ScopeItem[]
+  deliverableTemplates DeliverableTemplate[]
+  projectMembers ProjectMember[]
+}
+
+model DeliverableTemplate {
+  id              String        @id @default(cuid())
+  stageTemplateId String
+  disciplineId    String
+  name            String
+  required        Boolean       @default(true)
+  stageTemplate   StageTemplate @relation(fields: [stageTemplateId], references: [id], onDelete: Cascade)
+  discipline      Discipline    @relation(fields: [disciplineId], references: [id])
+}
+
+model Deliverable {
+  id           String       @id @default(cuid())
+  projectId    String
+  stageId      String
+  disciplineId String
+  ownerId      String
+  title        String
+  dueDate      DateTime
+  status       RecordStatus @default(OPEN)
+  qaStatus     QAStatus     @default(NOT_STARTED)
+  revision     String       @default("P01")
+  issueStatus  String       @default("Not issued")
+  qaOverrideReason String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage        Stage        @relation(fields: [stageId], references: [id])
+  discipline   Discipline   @relation(fields: [disciplineId], references: [id])
+  owner        User         @relation("DeliverableOwner", fields: [ownerId], references: [id])
+  qaReviews    QAReview[]
+
+  @@index([projectId, stageId, disciplineId])
+  @@index([ownerId, dueDate])
+}
+
+model Action {
+  id          String       @id @default(cuid())
+  projectId   String
+  ownerId     String
+  dueDate     DateTime
+  priority    Priority     @default(MEDIUM)
+  status      RecordStatus @default(OPEN)
+  description String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner       User         @relation("ActionOwner", fields: [ownerId], references: [id])
+}
+
+model Risk {
+  id          String       @id @default(cuid())
+  projectId   String
+  ownerId     String
+  severity    Severity
+  likelihood  Severity
+  mitigation  String
+  status      RecordStatus @default(OPEN)
+  description String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner       User         @relation("RiskOwner", fields: [ownerId], references: [id])
+}
+
+model Decision {
+  id         String       @id @default(cuid())
+  projectId  String
+  decision   String
+  ownerId    String
+  date       DateTime
+  impact     String
+  status     RecordStatus @default(OPEN)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner      User         @relation("DecisionOwner", fields: [ownerId], references: [id])
+}
+
+model InformationRequest {
+  id           String       @id @default(cuid())
+  projectId    String
+  requesterId  String
+  requiredFrom String
+  dueDate      DateTime
+  status       RecordStatus @default(OPEN)
+  description  String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester    User         @relation("InfoRequester", fields: [requesterId], references: [id])
+}
+
+model FeeBudget {
+  id            String     @id @default(cuid())
+  projectId     String
+  disciplineId  String
+  budgetHours   Float
+  budgetValue   Float
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  discipline    Discipline @relation(fields: [disciplineId], references: [id])
+
+  @@unique([projectId, disciplineId])
+}
+
+model FeeForecast {
+  id            String       @id @default(cuid())
+  projectId     String
+  actualHours   Float
+  forecastHours Float
+  varianceValue Float
+  status        RecordStatus @default(OPEN)
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ResourceAllocation {
+  id            String     @id @default(cuid())
+  userId        String
+  projectId     String
+  disciplineId  String
+  weekStart     DateTime
+  plannedHours  Float
+  capacityHours Float
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  user          User       @relation(fields: [userId], references: [id])
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  discipline    Discipline @relation(fields: [disciplineId], references: [id])
+
+  @@index([userId, weekStart])
+}
+
+model QAReview {
+  id              String       @id @default(cuid())
+  deliverableId   String
+  reviewerId      String
+  status          QAStatus     @default(IN_REVIEW)
+  comments        String?
+  internalComments String?
+  requiredActions String?
+  approvalState   String       @default("Pending")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deliverable     Deliverable  @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  reviewer        User         @relation("QAReviewer", fields: [reviewerId], references: [id])
+}
+
+model BIMRecord {
+  id             String       @id @default(cuid())
+  projectId      String
+  modelReference String
+  disciplineId   String
+  status         RecordStatus @default(OPEN)
+  lastCheckedAt  DateTime?
+  cdeLink        String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  discipline     Discipline   @relation(fields: [disciplineId], references: [id])
+}
+
+model ReportTemplate {
+  id               String         @id @default(cuid())
+  name             String
+  audience         ReportAudience
+  allowlistedFields String
+  reports          Report[]
+}
+
+model Report {
+  id           String         @id @default(cuid())
+  projectId    String
+  templateId   String
+  audience     ReportAudience
+  status       RecordStatus   @default(DRAFT)
+  generatedById String
+  snapshotJson String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  template     ReportTemplate @relation(fields: [templateId], references: [id])
+  generatedBy  User           @relation("ReportGeneratedBy", fields: [generatedById], references: [id])
+}
+
+model AuditEvent {
+  id            String   @id @default(cuid())
+  entityType    String
+  entityId      String
+  action        String
+  previousValue String?
+  newValue      String?
+  actorId       String?
+  sourcePath    String?
+  createdAt     DateTime @default(now())
+  actor         User?     @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+}

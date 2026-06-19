@@ -1,0 +1,2 @@
+import { PageHeader } from "@/components/PageHeader"; import { stages } from "@/lib/demo-data";
+export default function Page() { return <section className="stack"><PageHeader eyebrow="Fictional staged delivery" title="RIBA / BSRIA Stage Control">Current design stage, gate readiness and exceptions.</PageHeader><div className="panel"><ul className="list">{stages.map((s) => <li key={s.id}><strong>{s.project}: {s.name}</strong><br /><small>{s.status} · {s.gate}</small></li>)}</ul></div></section>; }

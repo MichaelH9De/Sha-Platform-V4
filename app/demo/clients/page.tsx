@@ -1,0 +1,2 @@
+import { PageHeader } from "@/components/PageHeader"; import { clients } from "@/lib/demo-data";
+export default function Page() { return <section className="stack"><PageHeader eyebrow="Fictional client register" title="Clients">Organisations, sectors and relationship owners.</PageHeader><div className="panel"><ul className="list">{clients.map((c) => <li key={c.id}><strong>{c.name}</strong><br /><small>{c.sector} · relationship owner {c.owner}</small></li>)}</ul></div></section>; }

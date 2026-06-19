@@ -1,0 +1,2 @@
+import { PageHeader } from "@/components/PageHeader"; import { informationRequests } from "@/lib/demo-data";
+export default function Page() { return <section className="stack"><PageHeader eyebrow="Fictional information control" title="Information Requests">Missing inputs, responsible parties and due dates.</PageHeader><div className="panel"><ul className="list">{informationRequests.map((i) => <li key={i.id}><strong>{i.description}: {i.status}</strong><br /><small>{i.project} · from {i.from} · due {i.due}</small></li>)}</ul></div></section>; }

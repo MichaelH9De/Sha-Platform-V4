@@ -1,0 +1,2 @@
+import { PageHeader } from "@/components/PageHeader"; import { appointments } from "@/lib/demo-data";
+export default function Page() { return <section className="stack"><PageHeader eyebrow="Fictional scope control" title="Appointments">Scope and fee basis for each project appointment.</PageHeader><div className="panel"><ul className="list">{appointments.map((a) => <li key={a.id}><strong>{a.project}</strong><br /><small>{a.scope} · {a.basis} · {a.status}</small></li>)}</ul></div></section>; }
