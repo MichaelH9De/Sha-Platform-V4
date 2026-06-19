@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/PageHeader";
-import { MetricCard } from "@/components/MetricCard";
-import { actions, deliverables, money, projects, risks } from "@/lib/demo-data";
-export function generateStaticParams() { return projects.map((project) => ({ id: project.id })); }
-export default async function Page({ params }: { params: Promise<{ id: string }> }) { const { id } = await params; const project = projects.find((item) => item.id === id); if (!project) notFound(); const projectDeliverables = deliverables.filter((item) => item.projectId === id); const projectRisks = risks.filter((item) => item.project === project.name); const projectActions = actions.filter((item) => item.project === project.name); return <section className="stack"><PageHeader eyebrow="Fictional project workspace" title={project.name}>{project.client} · {project.sector} · managed by {project.manager}</PageHeader><div className="grid cols-4"><MetricCard label="Health" value={project.health} /><MetricCard label="Stage" value={project.stage} /><MetricCard label="Agreed fee" value={money(project.fee)} /><MetricCard label="Forecast" value={money(project.forecast)} /></div><div className="grid cols-3"><div className="panel"><h3>Deliverables</h3><ul className="list">{projectDeliverables.map((d) => <li key={d.id}><strong>{d.title}</strong><br /><small>{d.status} · QA {d.qa} · due {d.due}</small></li>)}</ul></div><div className="panel"><h3>Risks</h3><ul className="list">{projectRisks.map((r) => <li key={r.id}><strong>{r.severity}: {r.description}</strong><br /><small>{r.mitigation}</small></li>)}</ul></div><div className="panel"><h3>Actions</h3><ul className="list">{projectActions.map((a) => <li key={a.id}><strong>{a.description}</strong><br /><small>{a.owner} · {a.status} · {a.due}</small></li>)}</ul></div></div></section>; }
+import { DemoProjectDetail } from "@/components/demo/DemoProjectDetail";
+
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <DemoProjectDetail projectId={id} />;
+}
