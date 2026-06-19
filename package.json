@@ -1,0 +1,46 @@
+{
+  "name": "mep-enterprise-platform-foundation",
+  "version": "3.1.0",
+  "private": true,
+  "description": "Prototype-friendly MEP consultancy platform with switchable demo and enterprise deployment modes.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "vercel-build": "npm run env:check && prisma generate && next build",
+    "env:check": "node scripts/check-env.mjs",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "tsx tests/run-tests.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run db:generate && npm run package:audit && npm run typecheck && npm run lint && npm run smoke-test && npm run test && npm run build",
+    "smoke-test": "node scripts/smoke-test.mjs",
+    "package:audit": "node scripts/audit-package.mjs",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "next": "15.5.19",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "lucide-react": "0.468.0",
+    "@prisma/client": "6.19.3",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.21",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3",
+    "eslint": "9.39.4",
+    "eslint-config-next": "15.5.19",
+    "prisma": "6.19.3",
+    "tsx": "4.22.4"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
